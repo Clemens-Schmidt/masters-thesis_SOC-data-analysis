@@ -1,7 +1,6 @@
-####
+##########################################################################################################################################
 #### 0. PACKAGES AND PREPARATION
-################################
-
+##########################################################################################################################################
 
 ## Install packages
 install.packages("openxlsx2")
@@ -25,12 +24,12 @@ library(stringr)
 library(scico)
 
 ## Set the work directory
-setwd("C:/Users/cleme/OneDrive/Dokumente/Uni Koblenz/Modul 16/UiB/Masters/02_R/Code")
+setwd("C:/Users/cleme/OneDrive/Dokumente/Uni Koblenz/Modul 16/UiB/Masters/02_R/masters-thesis_SOC-data-analysis")
 
 
-####
+##########################################################################################################################################
 #### 1. READ EXCEL DATA
-#######################
+##########################################################################################################################################
 
 ## Read three sheets from the excel file and only write selected columns
 sample_points <- wb_read("02_Data_Soil_Samples_Ecobudgets_CS_R-import.xlsx", sheet = 1) %>%
@@ -45,10 +44,9 @@ eco_points <- wb_read("02_Data_Soil_Samples_Ecobudgets_CS_R-import.xlsx", sheet 
   select(plot_ID, main_nature_type, one_soil_depth_north, one_soil_depth_east, one_soil_depth_south, one_soil_depth_west, ten_soil_depth_north, ten_soil_depth_east, ten_soil_depth_south, ten_soil_depth_west)
 
 
-####
+##########################################################################################################################################
 #### 2. SOIL LAYERS: Calculate and write results back into "soil_layers"
-########################################################################
-
+##########################################################################################################################################
 
 ## Compute the SOC [g/cm3] and SOC [g/cm2] per Layer
 soil_layers <- soil_layers %>%
@@ -88,10 +86,9 @@ soil_layers <- soil_layers %>%
   ungroup()
 
 
-####
+##########################################################################################################################################
 #### 3. SAMPLE POINTS: Calculate and write results back into "sample_points"
-############################################################################
-
+##########################################################################################################################################
 
 ## Compute the considerable depth (black layer depth or max 60 cm)
 sample_points <- sample_points %>%
@@ -335,9 +332,9 @@ sample_points <- sample_points %>%
   )
 
 
-####
+##########################################################################################################################################
 #### 4. ECO POINTS: add columns from "sample_points" and calculate values in "eco_points"
-
+##########################################################################################################################################
 
 ## Merge selected columns from sample_points into eco_points
 eco_points <- eco_points %>%
@@ -469,639 +466,9 @@ eco_points <- eco_points %>%
   )
     
 
-####
-#### PLOT RESULT 6: SOC [g/cm2] per Ecobudgets point per dominating nature type in 4 different calculation Variants
-
-## Prepare plot data
-eco_points_long_raw <- eco_points %>%
-  pivot_longer(
-    cols = tidyselect::matches("^SOC_stock_ecop_var.*_g_cm2$"),
-    names_to = "SOC_stock_variant",
-    values_to = "SOC_stock_ecop_g_cm2"
-  )%>%
-  mutate(
-    SOC_stock_variant = SOC_stock_variant %>%
-      str_remove("^SOC_stock_ecop_") %>% 
-      str_remove("_g_cm2$") 
-  )
-
-eco_points_long_mean <- eco_points %>%
-  pivot_longer(
-    cols = tidyselect::matches("^SOC_stock_ecop_var.*_g_cm2_mean$"),
-    names_to = "SOC_stock_variant",
-    values_to = "SOC_stock_ecop_mean_g_cm2"
-  ) %>%
-  mutate(
-    SOC_stock_variant = SOC_stock_variant %>%
-      str_remove("^SOC_stock_ecop_") %>% 
-      str_remove("_g_cm2_mean$") 
-  ) %>%
-  select(plot_ID, SOC_stock_variant, SOC_stock_ecop_mean_g_cm2)
-
-eco_points_long_median <- eco_points %>%
-  pivot_longer(
-    cols = tidyselect::matches("^SOC_stock_ecop_var.*_g_cm2_median$"),
-    names_to = "SOC_stock_variant",
-    values_to = "SOC_stock_ecop_median_g_cm2"
-  ) %>%
-  mutate(
-    SOC_stock_variant = SOC_stock_variant %>%
-      str_remove("^SOC_stock_ecop_") %>% 
-      str_remove("_g_cm2_median$") 
-  ) %>%
-  select(plot_ID, SOC_stock_variant, SOC_stock_ecop_median_g_cm2)
-
-eco_points_long <- eco_points_long_raw %>%
-  left_join(eco_points_long_mean, by = c("plot_ID", "SOC_stock_variant")) %>%
-  left_join(eco_points_long_median, by = c("plot_ID", "SOC_stock_variant"))%>%
-  select(plot_ID, main_nature_type, n_main_nature_type, SOC_stock_variant, SOC_stock_ecop_g_cm2, SOC_stock_ecop_mean_g_cm2, SOC_stock_ecop_median_g_cm2)
-
-eco_points_long$SOC_stock_variant <- factor(
-  eco_points_long$SOC_stock_variant,
-  levels = c("var1", "var2", "var3", "var4"),   # original values in your data
-  labels = c("Var 1", "Var 2", "Var 3", "Var 4")  # x-axis labels
-  )
-
-eco_points_long <- eco_points_long %>%
-  mutate(
-    SOC_stock_ecop_kg_m2 = SOC_stock_ecop_g_cm2 * 10,
-    SOC_stock_ecop_mean_kg_m2 = SOC_stock_ecop_mean_g_cm2 * 10,
-    SOC_stock_ecop_median_kg_m2 = SOC_stock_ecop_median_g_cm2 * 10
-  )
-
-eco_points_deci <- eco_points_long %>%
-  filter(main_nature_type == "Deciduous Forest")
-eco_points_pine <- eco_points_long %>%
-  filter(main_nature_type == "Pine Forest")
-eco_points_spru <- eco_points_long %>%
-  filter(main_nature_type == "Spruce Forest")
-eco_points_shru <- eco_points_long %>%
-  filter(main_nature_type == "Shrubs")
-eco_points_grass <- eco_points_long %>%
-  filter(main_nature_type == "Grassland")
-eco_points_wet <- eco_points_long %>%
-  filter(main_nature_type == "Wetland")
-eco_points_urban <- eco_points_long %>%
-  filter(main_nature_type == "Urban")
-
-n_main_nature_type_deci <- eco_points_deci$n_main_nature_type[1]
-n_main_nature_type_pine <- eco_points_pine$n_main_nature_type[1]
-n_main_nature_type_spru <- eco_points_spru$n_main_nature_type[1]
-n_main_nature_type_shru <- eco_points_shru$n_main_nature_type[1]
-n_main_nature_type_grass <- eco_points_grass$n_main_nature_type[1]
-n_main_nature_type_wet <- eco_points_wet$n_main_nature_type[1]
-n_main_nature_type_urban <- eco_points_urban$n_main_nature_type[1]
-
-var_groups <- length(levels(eco_points_long$SOC_stock_variant))
-batlow_batlow <- scico(n = var_groups, palette = "batlow", begin = 0.15, end = 0.7)
-
-## Plot data for result 6: SOC [g/cm2] per Ecobudgets point per dominating nature type in 4 different calculation Variants
-plot_SOC_ecop_deci <- ggplot(eco_points_deci, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
-  geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.5) +
-  stat_summary(
-    fun = mean,
-    geom = "crossbar",
-    width = 0.7,
-    linetype = "dashed",
-    linewidth = 0.2, 
-    alpha = 0.5,
-    color = "grey30"
-  ) +
-  stat_boxplot(
-    geom = "errorbar",
-    width = 0.4,
-    linewidth = 0.3,
-    color = "grey10",
-  )+
-    geom_jitter(aes(fill = factor(SOC_stock_variant)), color = "grey10", width = 0.06, size = 2.5, shape = 21) + 
-  geom_text(
-    data = eco_points_deci,
-    aes(x = SOC_stock_variant),
-    label = sapply(eco_points_deci$SOC_stock_ecop_mean_kg_m2, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf, 
-    vjust = -2.3,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  geom_text(
-    data = eco_points_deci,
-    aes(x = SOC_stock_variant),
-    label = sapply(eco_points_deci$SOC_stock_ecop_median_kg_m2, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf,
-    vjust = -0.5,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "none",
-        axis.line = element_line(color = "black", linewidth = 0.6),
-        axis.ticks = element_line(color = "black"),
-        panel.grid = element_blank(),
-        axis.title.x = element_text(size = 14, family = "sans"),
-        axis.title.y = element_text(size = 14, family = "sans"),
-        axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
-        axis.text.y  = element_text(size = 14, family = "sans", color = "black")
-  ) +
-  labs(x = paste0("Deciduous Forest (n = ", n_main_nature_type_deci, ")"), y = "SOC stock [kg/m²]") +
-  coord_cartesian(ylim = c(0, 170), clip = "off") +
-  theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
-  scale_fill_manual(values = batlow_batlow) +
-  scale_color_manual(values = batlow_batlow)
-
-
-plot_SOC_ecop_pine <- ggplot(eco_points_pine, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
-  geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.5) +
-  stat_summary(
-    fun = mean,
-    geom = "crossbar",
-    width = 0.7,
-    linetype = "dashed",
-    linewidth = 0.2, 
-    alpha = 0.5,
-    color = "grey30"
-  ) +
-  stat_boxplot(
-    geom = "errorbar",
-    width = 0.4,
-    linewidth = 0.3,
-    color = "grey10",
-  )+
-  geom_jitter(aes(fill = factor(SOC_stock_variant)), color = "grey10", width = 0.06, size = 2.5, shape = 21) + 
-  geom_text(
-    data = eco_points_pine,
-    aes(x = SOC_stock_variant),
-    label = sapply(eco_points_pine$SOC_stock_ecop_mean_kg_m2, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf, 
-    vjust = -2.3,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  geom_text(
-    data = eco_points_pine,
-    aes(x = SOC_stock_variant),
-    label = sapply(eco_points_pine$SOC_stock_ecop_median_kg_m2, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf,
-    vjust = -0.5,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "none",
-        axis.line = element_line(color = "black", linewidth = 0.6),
-        axis.ticks = element_line(color = "black"),
-        panel.grid = element_blank(),
-        axis.title.x = element_text(size = 14, family = "sans"),
-        axis.title.y = element_text(size = 14, family = "sans"),
-        axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
-        axis.text.y  = element_text(size = 14, family = "sans", color = "black")
-  ) +
-  labs(x = paste0("Pine Forest (n = ", n_main_nature_type_pine, ")"), y = "SOC stock [kg/m²]") +
-  coord_cartesian(ylim = c(0, 170), clip = "off") +
-  theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
-  scale_fill_manual(values = batlow_batlow) +
-  scale_color_manual(values = batlow_batlow)
-
-
-plot_SOC_ecop_spru <- ggplot(eco_points_spru, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
-  geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.5) +
-  stat_summary(
-    fun = mean,
-    geom = "crossbar",
-    width = 0.7,
-    linetype = "dashed",
-    linewidth = 0.2, 
-    alpha = 0.5,
-    color = "grey30"
-  ) +
-  stat_boxplot(
-    geom = "errorbar",
-    width = 0.4,
-    linewidth = 0.3,
-    color = "grey10",
-  )+
-  geom_jitter(aes(fill = factor(SOC_stock_variant)), color = "grey10", width = 0.06, size = 2.5, shape = 21) + 
-  geom_text(
-    data = eco_points_spru,
-    aes(x = SOC_stock_variant),
-    label = sapply(eco_points_spru$SOC_stock_ecop_mean_kg_m2, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf, 
-    vjust = -2.3,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  geom_text(
-    data = eco_points_spru,
-    aes(x = SOC_stock_variant),
-    label = sapply(eco_points_spru$SOC_stock_ecop_median_kg_m2, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf,
-    vjust = -0.5,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "none",
-        axis.line = element_line(color = "black", linewidth = 0.6),
-        axis.ticks = element_line(color = "black"),
-        panel.grid = element_blank(),
-        axis.title.x = element_text(size = 14, family = "sans"),
-        axis.title.y = element_text(size = 14, family = "sans"),
-        axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
-        axis.text.y  = element_text(size = 14, family = "sans", color = "black")
-  ) +
-  labs(x = paste0("Spruce Forest (n = ", n_main_nature_type_spru, ")"), y = "SOC stock [kg/m²]") +
-  coord_cartesian(ylim = c(0, 170), clip = "off") +
-  theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
-  scale_fill_manual(values = batlow_batlow) +
-  scale_color_manual(values = batlow_batlow)
-
-
-plot_SOC_ecop_shru <- ggplot(eco_points_shru, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
-  geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.5) +
-  stat_summary(
-    fun = mean,
-    geom = "crossbar",
-    width = 0.7,
-    linetype = "dashed",
-    linewidth = 0.2, 
-    alpha = 0.5,
-    color = "grey30"
-  ) +
-  stat_boxplot(
-    geom = "errorbar",
-    width = 0.4,
-    linewidth = 0.3,
-    color = "grey10",
-  )+
-  geom_jitter(aes(fill = factor(SOC_stock_variant)), color = "grey10", width = 0.06, size = 2.5, shape = 21) + 
-  geom_text(
-    data = eco_points_shru,
-    aes(x = SOC_stock_variant),
-    label = sapply(eco_points_shru$SOC_stock_ecop_mean_kg_m2, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf, 
-    vjust = -2.3,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  geom_text(
-    data = eco_points_shru,
-    aes(x = SOC_stock_variant),
-    label = sapply(eco_points_shru$SOC_stock_ecop_median_kg_m2, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf,
-    vjust = -0.5,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "none",
-        axis.line = element_line(color = "black", linewidth = 0.6),
-        axis.ticks = element_line(color = "black"),
-        panel.grid = element_blank(),
-        axis.title.x = element_text(size = 14, family = "sans"),
-        axis.title.y = element_text(size = 14, family = "sans"),
-        axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
-        axis.text.y  = element_text(size = 14, family = "sans", color = "black")
-  ) +
-  labs(x = paste0("Shrubs (n = ", n_main_nature_type_shru, ")"), y = "SOC stock [kg/m²]") +
-  coord_cartesian(ylim = c(0, 170), clip = "off") +
-  theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
-  scale_fill_manual(values = batlow_batlow) +
-  scale_color_manual(values = batlow_batlow)
-
-
-plot_SOC_ecop_grass <- ggplot(eco_points_grass, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
-  geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.5) +
-  stat_summary(
-    fun = mean,
-    geom = "crossbar",
-    width = 0.7,
-    linetype = "dashed",
-    linewidth = 0.2, 
-    alpha = 0.5,
-    color = "grey30"
-  ) +
-  stat_boxplot(
-    geom = "errorbar",
-    width = 0.4,
-    linewidth = 0.3,
-    color = "grey10",
-  )+
-  geom_jitter(aes(fill = factor(SOC_stock_variant)), color = "grey10", width = 0.06, size = 2.5, shape = 21) + 
-  geom_text(
-    data = eco_points_grass,
-    aes(x = SOC_stock_variant),
-    label = sapply(eco_points_grass$SOC_stock_ecop_mean_kg_m2, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf, 
-    vjust = -2.3,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  geom_text(
-    data = eco_points_grass,
-    aes(x = SOC_stock_variant),
-    label = sapply(eco_points_grass$SOC_stock_ecop_median_kg_m2, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf,
-    vjust = -0.5,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "none",
-        axis.line = element_line(color = "black", linewidth = 0.6),
-        axis.ticks = element_line(color = "black"),
-        panel.grid = element_blank(),
-        axis.title.x = element_text(size = 14, family = "sans"),
-        axis.title.y = element_text(size = 14, family = "sans"),
-        axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
-        axis.text.y  = element_text(size = 14, family = "sans", color = "black")
-  ) +
-  labs(x = paste0("Grassland (n = ", n_main_nature_type_grass, ")"), y = "SOC stock [kg/m²]") +
-  coord_cartesian(ylim = c(0, 170), clip = "off") +
-  theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
-  scale_fill_manual(values = batlow_batlow) +
-  scale_color_manual(values = batlow_batlow)
-
-
-plot_SOC_ecop_wet <- ggplot(eco_points_wet, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
-  geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.5) +
-  stat_summary(
-    fun = mean,
-    geom = "crossbar",
-    width = 0.7,
-    linetype = "dashed",
-    linewidth = 0.2, 
-    alpha = 0.5,
-    color = "grey30"
-  ) +
-  stat_boxplot(
-    geom = "errorbar",
-    width = 0.4,
-    linewidth = 0.3,
-    color = "grey10",
-  )+
-  geom_jitter(aes(fill = factor(SOC_stock_variant)), color = "grey10", width = 0.06, size = 2.5, shape = 21) + 
-  geom_text(
-    data = eco_points_wet,
-    aes(x = SOC_stock_variant),
-    label = sapply(eco_points_wet$SOC_stock_ecop_mean_kg_m2, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf, 
-    vjust = -2.3,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  geom_text(
-    data = eco_points_wet,
-    aes(x = SOC_stock_variant),
-    label = sapply(eco_points_wet$SOC_stock_ecop_median_kg_m2, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf,
-    vjust = -0.5,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "none",
-        axis.line = element_line(color = "black", linewidth = 0.6),
-        axis.ticks = element_line(color = "black"),
-        panel.grid = element_blank(),
-        axis.title.x = element_text(size = 14, family = "sans"),
-        axis.title.y = element_text(size = 14, family = "sans"),
-        axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
-        axis.text.y  = element_text(size = 14, family = "sans", color = "black")
-  ) +
-  labs(x = paste0("Wetland (n = ", n_main_nature_type_wet, ")"), y = "SOC stock [kg/m²]") +
-  coord_cartesian(ylim = c(0, 170), clip = "off") +
-  theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
-  scale_fill_manual(values = batlow_batlow) +
-  scale_color_manual(values = batlow_batlow)
-
-
-plot_SOC_ecop_urban <- ggplot(eco_points_urban, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
-  geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.5) +
-  stat_summary(
-    fun = mean,
-    geom = "crossbar",
-    width = 0.7,
-    linetype = "dashed",
-    linewidth = 0.2, 
-    alpha = 0.5,
-    color = "grey30"
-  ) +
-  stat_boxplot(
-    geom = "errorbar",
-    width = 0.4,
-    linewidth = 0.3,
-    color = "grey10",
-  )+
-  geom_jitter(aes(fill = factor(SOC_stock_variant)), color = "grey10", width = 0.06, size = 2.5, shape = 21) + 
-  geom_text(
-    data = eco_points_urban,
-    aes(x = SOC_stock_variant),
-    label = sapply(eco_points_urban$SOC_stock_ecop_mean_kg_m2, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf, 
-    vjust = -2.3,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  geom_text(
-    data = eco_points_urban,
-    aes(x = SOC_stock_variant),
-    label = sapply(eco_points_urban$SOC_stock_ecop_median_kg_m2, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf,
-    vjust = -0.5,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "none",
-        axis.line = element_line(color = "black", linewidth = 0.6),
-        axis.ticks = element_line(color = "black"),
-        panel.grid = element_blank(),
-        axis.title.x = element_text(size = 14, family = "sans"),
-        axis.title.y = element_text(size = 14, family = "sans"),
-        axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
-        axis.text.y  = element_text(size = 14, family = "sans", color = "black")
-  ) +
-  labs(x = paste0("Built Area (n = ", n_main_nature_type_urban, ")"), y = "SOC stock [kg/m²]") +
-  coord_cartesian(ylim = c(0, 170), clip = "off") +
-  theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
-  scale_fill_manual(values = batlow_batlow) +
-  scale_color_manual(values = batlow_batlow)
-
-
-plot_SOC_ecop_all_1v2 <- (((plot_SOC_ecop_wet | plot_SOC_ecop_deci) + plot_layout(widths = c(1, 1))) / 
-  (plot_SOC_ecop_spru | plot_SOC_ecop_pine)  + plot_layout(widths = c(1, 1)))
-
-
-plot_SOC_ecop_all_2v2 <- (((plot_SOC_ecop_shru | plot_SOC_ecop_grass) + plot_layout(widths = c(1, 1))) /
-  (plot_SOC_ecop_urban | plot_spacer()) + plot_layout(widths = c(1.5, 0.5)))
-  
-ggsave(
-  "plot_SOC_ecop_all_1v2.png",
-  plot = plot_SOC_ecop_all_1v2,
-  width = 8, 
-  height = 9, 
-  dpi = 300
-)
-
-ggsave(
-  "plot_SOC_ecop_all_2v2.png",
-  plot = plot_SOC_ecop_all_2v2,
-  width = 8, 
-  height = 9, 
-  dpi = 300
-)
-
-
-####
-#### PLOT RESULT 5: SOC [kg/m2] per Ecobudgets point in 4 different calculation Variants
-
-## Prepare plot data
-counts_all_var <- eco_points_long %>%
-  group_by(SOC_stock_variant) %>%
-  summarise(n = n())
-
-n_eco_points <- length(eco_points$plot_ID)
-
-mean_SOC_all_var_kg_m2 <- eco_points_long %>%
-  group_by(SOC_stock_variant) %>%
-  summarise(
-    mean_val = mean(SOC_stock_ecop_kg_m2, na.rm = TRUE)
-  )
-
-median_SOC_all_var_kg_m2 <- eco_points_long %>%
-  group_by(SOC_stock_variant) %>%
-  summarise(
-    median_val = median(SOC_stock_ecop_kg_m2, na.rm = TRUE)
-  )
-
-## Plot data for result 5: SOC [kg/m2] per Ecobudgets point in 4 different calculation Variants
-plot_SOC_all_var_kg_m2 <- ggplot(eco_points_long, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
-  geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10",  width = 0.6, outlier.shape = 5, outlier.size = 2.5, linewidth = 0.5) +
-  stat_summary(
-    fun = mean,
-    geom = "crossbar",
-    width = 0.6,
-    linetype = "dashed",
-    linewidth = 0.2, 
-    color = "grey10"
-  ) +
-  geom_segment(
-    aes(x = 1, xend = 4, y = 105, yend = 105),
-    arrow = arrow(length = unit(0.25, "cm"), ends = "both", type = "closed"),
-    linewidth = 0.4
-  ) +
-  annotate(
-    "text",
-    x = 2.5,
-    y = 112,
-    label = "r = 0.70",
-    size = 4
-  ) +
-  geom_segment(
-    aes(x = 2, xend = 4, y = 78, yend = 78),
-    arrow = arrow(length = unit(0.25, "cm"), ends = "both", type = "closed"),
-    linewidth = 0.4
-  ) +
-  annotate(
-    "text",
-    x = 2.5,
-    y = 85,
-    label = "r = 0.80",
-    size = 4
-  ) +
-  geom_segment(
-    aes(x = 2, xend = 3, y = 58, yend = 58),
-    arrow = arrow(length = unit(0.25, "cm"), ends = "both", type = "closed"),
-    linewidth = 0.4,
-    linetype = "longdash"
-  ) +
-  annotate(
-    "text",
-    x = 2.5,
-    y = 65,
-    label = "r = 0.44",
-    size = 4
-  ) +
-  geom_text(
-    data = mean_SOC_all_var_kg_m2,
-    aes(x = SOC_stock_variant),
-    label = sapply(mean_SOC_all_var_kg_m2$mean_val, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf, 
-    vjust = -2.3,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  geom_text(
-    data = median_SOC_all_var_kg_m2,
-    aes(x = SOC_stock_variant),
-    label = sapply(median_SOC_all_var_kg_m2$median_val, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
-    parse = TRUE,
-    y = Inf,
-    vjust = -0.5,
-    inherit.aes = FALSE,
-    color = "black",
-    size = 4.3
-  ) +
-  theme_minimal(base_size = 14) +
-  theme(legend.position = "none",
-        axis.line = element_line(color = "black", linewidth = 0.6),
-        axis.ticks = element_line(color = "black"),
-        panel.grid = element_blank(),
-        axis.title.x = element_text(size = 14, family = "sans"),
-        axis.title.y = element_text(size = 14, family = "sans"),
-        axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
-        axis.text.y  = element_text(size = 14, family = "sans", color = "black")
-  ) +
-  labs(x = paste0("Ecobudgets points (n = ", n_eco_points, ")"), y = "SOC stock [kg/m²]") +
-  coord_cartesian(ylim = c(0, 170), clip = "off") +
-  theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
-  scale_fill_manual(values = batlow_batlow) +
-  scale_color_manual(values = batlow_batlow)
-
-## PLOT SAVE
-ggsave(
-  "plot_SOC_all_var_kg_m2.png",
-  plot_SOC_all_var_kg_m2,
-  width = 160/25.4,
-  height = 120/25.4,
-  units = "in",
-  dpi = 300
-)
-
-
-
-
-
-
+##########################################################################################################################################
+#### 5. PLOT RESULTS
+##########################################################################################################################################
 
 ####
 #### PLOT RESULT 1: LOI [%] and SOC [g/cm3] for all soil layers per pre defined layer depth
@@ -1477,7 +844,7 @@ median_SOC_layers_grass <- median_SOC_layers_grass %>%
 
 
 
-## Plot data for result 2: SOC [g/cm3] per pre defined layer depth fro each nature type
+## Plot data for result 2: SOC concentration [g/cm3] per pre defined layer depth for each nature type group
 plot_SOC_layers_urban <- ggplot(layers_urban, aes(x = part_of_pre_def_layer, y = `SOC_g_cm3`)) +
   scale_x_discrete(drop = FALSE) +
   geom_boxplot(aes(fill = factor(part_of_pre_def_layer)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.5) +
@@ -1960,8 +1327,7 @@ plot_SOC_layers_wet <- ggplot(layers_wet, aes(x = part_of_pre_def_layer, y = `SO
   scale_fill_manual(values = sl_colors) +
   scale_color_manual(values = sl_colors)
 
-
-
+# Merge single plots to two combined plots
 plot_SOC_layers_ntyp_1v2 <- (((plot_SOC_layers_wet | plot_SOC_layers_deci) + plot_layout(widths = c(1, 1))) / 
                             (plot_SOC_layers_spru | plot_SOC_layers_pine)  + plot_layout(widths = c(1, 1)))
 
@@ -1984,13 +1350,6 @@ ggsave(
   height = 10, 
   dpi = 300
 )
-
-
-
-
-
-
-
 
 
 ####
@@ -2023,6 +1382,7 @@ median_SOC_all_samples_kg_m2 <- sample_points %>%
     median_val = median(SOC_stock_sample_var1_kg_m2, na.rm = TRUE)
   )
 
+## Plot data for result 3: SOC stock per unit area [kg/m²] per nature type group
 plot_SOC_all_samples_kg_m2 <- ggplot(sample_points, aes(x = nature_type_reevaluation, y = SOC_stock_sample_var1_kg_m2)) +
   geom_boxplot(aes(fill = factor(nature_type_reevaluation)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.3) +
   stat_summary(
@@ -2082,7 +1442,7 @@ plot_SOC_all_samples_kg_m2 <- ggplot(sample_points, aes(x = nature_type_reevalua
         axis.text.x  = element_text(size = 14, family = "sans", color = "black", angle = 45, hjust = 1),
         axis.text.y  = element_text(size = 14, family = "sans", color = "black")
   ) +
-  labs(x = paste0("Nature type"), y = "SOC stock [kg/m²]") +  # 
+  labs(x = paste0("Nature type group"), y = "SOC stock [kg/m²]") +  # 
   coord_cartesian(ylim = c(0, 210), clip = "off") +
   theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
   scale_fill_manual(values = batlow_bamako) +
@@ -2102,7 +1462,7 @@ plot_SOC_all_samples_kg_m2 <- ggplot(sample_points, aes(x = nature_type_reevalua
   
   
   ####
-  #### PLOT RESULT 4: SOC [kg/m2] per Ecobudgets point following calculation variant 1 displayed for each dominating nature type
+  #### PLOT RESULT 4: SOC stock per unit area [kg/m2] per Ecobudgets site following calculation variant 1 displayed for each dominating nature type
   
   ## Prepare plot data
   eco_points$main_nature_type[
@@ -2137,7 +1497,7 @@ plot_SOC_all_samples_kg_m2 <- ggplot(sample_points, aes(x = nature_type_reevalua
   
   
   
-  ## Plot data for result 4: SOC [kg/m2] per Ecobudgets point following calculation variant 1 displayed for each dominating nature type
+  ## Plot data for result 4: SOC stock per unit area [kg/m2] per Ecobudgets site following calculation variant 1 displayed for each dominating nature type
   plot_SOC_all_ecop_kg_m2 <- ggplot(eco_points, aes(x = main_nature_type, y = SOC_stock_ecop_var1_kg_m2)) +
     geom_boxplot(aes(fill = factor(main_nature_type)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.3) +
     stat_summary(
@@ -2215,6 +1575,638 @@ plot_SOC_all_samples_kg_m2 <- ggplot(sample_points, aes(x = nature_type_reevalua
   )
   
   
+  ####
+  #### PLOT RESULT 5: SOC stock per unit area [kg/m2] per Ecobudgets point in 4 different calculation Variants
+  
+  ## Prepare plot data
+  counts_all_var <- eco_points_long %>%
+    group_by(SOC_stock_variant) %>%
+    summarise(n = n())
+  
+  n_eco_points <- length(eco_points$plot_ID)
+  
+  mean_SOC_all_var_kg_m2 <- eco_points_long %>%
+    group_by(SOC_stock_variant) %>%
+    summarise(
+      mean_val = mean(SOC_stock_ecop_kg_m2, na.rm = TRUE)
+    )
+  
+  median_SOC_all_var_kg_m2 <- eco_points_long %>%
+    group_by(SOC_stock_variant) %>%
+    summarise(
+      median_val = median(SOC_stock_ecop_kg_m2, na.rm = TRUE)
+    )
+  
+  ## Plot data for result 5: SOC [kg/m2] per Ecobudgets point in 4 different calculation Variants
+  plot_SOC_all_var_kg_m2 <- ggplot(eco_points_long, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
+    geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10",  width = 0.6, outlier.shape = 5, outlier.size = 2.5, linewidth = 0.5) +
+    stat_summary(
+      fun = mean,
+      geom = "crossbar",
+      width = 0.6,
+      linetype = "dashed",
+      linewidth = 0.2, 
+      color = "grey10"
+    ) +
+    geom_segment(            # If needed according to result in CODE CHAPTER 6.
+      aes(x = 1, xend = 4, y = 105, yend = 105),
+      arrow = arrow(length = unit(0.25, "cm"), ends = "both", type = "closed"),
+      linewidth = 0.4
+    ) +
+    annotate(
+      "text",
+      x = 2.5,
+      y = 112,
+      label = "r = 0.70",    # Value needs to be added according to results in CODE CHAPTER 6.
+      size = 4
+    ) +
+    geom_segment(            # If needed according to result in CODE CHAPTER 6.
+      aes(x = 2, xend = 4, y = 78, yend = 78),
+      arrow = arrow(length = unit(0.25, "cm"), ends = "both", type = "closed"),
+      linewidth = 0.4
+    ) +
+    annotate(
+      "text",
+      x = 2.5,
+      y = 85,
+      label = "r = 0.80",    # Value needs to be added according to results in CODE CHAPTER 6.
+      size = 4
+    ) +
+    geom_segment(            # If needed according to result in CODE CHAPTER 6.
+      aes(x = 2, xend = 3, y = 58, yend = 58),
+      arrow = arrow(length = unit(0.25, "cm"), ends = "both", type = "closed"),
+      linewidth = 0.4,
+      linetype = "longdash"
+    ) +
+    annotate(
+      "text",
+      x = 2.5,
+      y = 65,
+      label = "r = 0.44",    # Value needs to be added according to results in CODE CHAPTER 6.
+      size = 4
+    ) +
+    geom_text(
+      data = mean_SOC_all_var_kg_m2,
+      aes(x = SOC_stock_variant),
+      label = sapply(mean_SOC_all_var_kg_m2$mean_val, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf, 
+      vjust = -2.3,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    geom_text(
+      data = median_SOC_all_var_kg_m2,
+      aes(x = SOC_stock_variant),
+      label = sapply(median_SOC_all_var_kg_m2$median_val, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf,
+      vjust = -0.5,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "none",
+          axis.line = element_line(color = "black", linewidth = 0.6),
+          axis.ticks = element_line(color = "black"),
+          panel.grid = element_blank(),
+          axis.title.x = element_text(size = 14, family = "sans"),
+          axis.title.y = element_text(size = 14, family = "sans"),
+          axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
+          axis.text.y  = element_text(size = 14, family = "sans", color = "black")
+    ) +
+    labs(x = paste0("Ecobudgets points (n = ", n_eco_points, ")"), y = "SOC stock [kg/m²]") +
+    coord_cartesian(ylim = c(0, 170), clip = "off") +
+    theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
+    scale_fill_manual(values = batlow_batlow) +
+    scale_color_manual(values = batlow_batlow)
+  
+  ## PLOT SAVE
+  ggsave(
+    "plot_SOC_all_var_kg_m2.png",
+    plot_SOC_all_var_kg_m2,
+    width = 160/25.4,
+    height = 120/25.4,
+    units = "in",
+    dpi = 300
+  )
+  
+  
+  ####
+  #### PLOT RESULT 6: SOC [g/cm2] per Ecobudgets point per dominating nature type in 4 different calculation Variants
+  
+  ## Prepare plot data
+  eco_points_long_raw <- eco_points %>%
+    pivot_longer(
+      cols = tidyselect::matches("^SOC_stock_ecop_var.*_g_cm2$"),
+      names_to = "SOC_stock_variant",
+      values_to = "SOC_stock_ecop_g_cm2"
+    )%>%
+    mutate(
+      SOC_stock_variant = SOC_stock_variant %>%
+        str_remove("^SOC_stock_ecop_") %>% 
+        str_remove("_g_cm2$") 
+    )
+  
+  eco_points_long_mean <- eco_points %>%
+    pivot_longer(
+      cols = tidyselect::matches("^SOC_stock_ecop_var.*_g_cm2_mean$"),
+      names_to = "SOC_stock_variant",
+      values_to = "SOC_stock_ecop_mean_g_cm2"
+    ) %>%
+    mutate(
+      SOC_stock_variant = SOC_stock_variant %>%
+        str_remove("^SOC_stock_ecop_") %>% 
+        str_remove("_g_cm2_mean$") 
+    ) %>%
+    select(plot_ID, SOC_stock_variant, SOC_stock_ecop_mean_g_cm2)
+  
+  eco_points_long_median <- eco_points %>%
+    pivot_longer(
+      cols = tidyselect::matches("^SOC_stock_ecop_var.*_g_cm2_median$"),
+      names_to = "SOC_stock_variant",
+      values_to = "SOC_stock_ecop_median_g_cm2"
+    ) %>%
+    mutate(
+      SOC_stock_variant = SOC_stock_variant %>%
+        str_remove("^SOC_stock_ecop_") %>% 
+        str_remove("_g_cm2_median$") 
+    ) %>%
+    select(plot_ID, SOC_stock_variant, SOC_stock_ecop_median_g_cm2)
+  
+  eco_points_long <- eco_points_long_raw %>%
+    left_join(eco_points_long_mean, by = c("plot_ID", "SOC_stock_variant")) %>%
+    left_join(eco_points_long_median, by = c("plot_ID", "SOC_stock_variant"))%>%
+    select(plot_ID, main_nature_type, n_main_nature_type, SOC_stock_variant, SOC_stock_ecop_g_cm2, SOC_stock_ecop_mean_g_cm2, SOC_stock_ecop_median_g_cm2)
+  
+  eco_points_long$SOC_stock_variant <- factor(
+    eco_points_long$SOC_stock_variant,
+    levels = c("var1", "var2", "var3", "var4"),   # original values
+    labels = c("Var 1", "Var 2", "Var 3", "Var 4")  # x-axis labels
+  )
+  
+  eco_points_long <- eco_points_long %>%
+    mutate(
+      SOC_stock_ecop_kg_m2 = SOC_stock_ecop_g_cm2 * 10,
+      SOC_stock_ecop_mean_kg_m2 = SOC_stock_ecop_mean_g_cm2 * 10,
+      SOC_stock_ecop_median_kg_m2 = SOC_stock_ecop_median_g_cm2 * 10
+    )
+  
+  eco_points_deci <- eco_points_long %>%
+    filter(main_nature_type == "Deciduous Forest")
+  eco_points_pine <- eco_points_long %>%
+    filter(main_nature_type == "Pine Forest")
+  eco_points_spru <- eco_points_long %>%
+    filter(main_nature_type == "Spruce Forest")
+  eco_points_shru <- eco_points_long %>%
+    filter(main_nature_type == "Shrubs")
+  eco_points_grass <- eco_points_long %>%
+    filter(main_nature_type == "Grassland")
+  eco_points_wet <- eco_points_long %>%
+    filter(main_nature_type == "Wetland")
+  eco_points_urban <- eco_points_long %>%
+    filter(main_nature_type == "Urban")
+  
+  n_main_nature_type_deci <- eco_points_deci$n_main_nature_type[1]
+  n_main_nature_type_pine <- eco_points_pine$n_main_nature_type[1]
+  n_main_nature_type_spru <- eco_points_spru$n_main_nature_type[1]
+  n_main_nature_type_shru <- eco_points_shru$n_main_nature_type[1]
+  n_main_nature_type_grass <- eco_points_grass$n_main_nature_type[1]
+  n_main_nature_type_wet <- eco_points_wet$n_main_nature_type[1]
+  n_main_nature_type_urban <- eco_points_urban$n_main_nature_type[1]
+  
+  var_groups <- length(levels(eco_points_long$SOC_stock_variant))
+  batlow_batlow <- scico(n = var_groups, palette = "batlow", begin = 0.15, end = 0.7)
+  
+  ## Plot data for result 6: SOC stock per unit area [g/cm2] per Ecobudgets point per dominating nature type group in 4 different calculation Variants
+  plot_SOC_ecop_deci <- ggplot(eco_points_deci, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
+    geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.5) +
+    stat_summary(
+      fun = mean,
+      geom = "crossbar",
+      width = 0.7,
+      linetype = "dashed",
+      linewidth = 0.2, 
+      alpha = 0.5,
+      color = "grey30"
+    ) +
+    stat_boxplot(
+      geom = "errorbar",
+      width = 0.4,
+      linewidth = 0.3,
+      color = "grey10",
+    )+
+    geom_jitter(aes(fill = factor(SOC_stock_variant)), color = "grey10", width = 0.06, size = 2.5, shape = 21) + 
+    geom_text(
+      data = eco_points_deci,
+      aes(x = SOC_stock_variant),
+      label = sapply(eco_points_deci$SOC_stock_ecop_mean_kg_m2, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf, 
+      vjust = -2.3,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    geom_text(
+      data = eco_points_deci,
+      aes(x = SOC_stock_variant),
+      label = sapply(eco_points_deci$SOC_stock_ecop_median_kg_m2, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf,
+      vjust = -0.5,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "none",
+          axis.line = element_line(color = "black", linewidth = 0.6),
+          axis.ticks = element_line(color = "black"),
+          panel.grid = element_blank(),
+          axis.title.x = element_text(size = 14, family = "sans"),
+          axis.title.y = element_text(size = 14, family = "sans"),
+          axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
+          axis.text.y  = element_text(size = 14, family = "sans", color = "black")
+    ) +
+    labs(x = paste0("Deciduous Forest (n = ", n_main_nature_type_deci, ")"), y = "SOC stock [kg/m²]") +
+    coord_cartesian(ylim = c(0, 170), clip = "off") +
+    theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
+    scale_fill_manual(values = batlow_batlow) +
+    scale_color_manual(values = batlow_batlow)
+  
+  
+  plot_SOC_ecop_pine <- ggplot(eco_points_pine, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
+    geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.5) +
+    stat_summary(
+      fun = mean,
+      geom = "crossbar",
+      width = 0.7,
+      linetype = "dashed",
+      linewidth = 0.2, 
+      alpha = 0.5,
+      color = "grey30"
+    ) +
+    stat_boxplot(
+      geom = "errorbar",
+      width = 0.4,
+      linewidth = 0.3,
+      color = "grey10",
+    )+
+    geom_jitter(aes(fill = factor(SOC_stock_variant)), color = "grey10", width = 0.06, size = 2.5, shape = 21) + 
+    geom_text(
+      data = eco_points_pine,
+      aes(x = SOC_stock_variant),
+      label = sapply(eco_points_pine$SOC_stock_ecop_mean_kg_m2, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf, 
+      vjust = -2.3,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    geom_text(
+      data = eco_points_pine,
+      aes(x = SOC_stock_variant),
+      label = sapply(eco_points_pine$SOC_stock_ecop_median_kg_m2, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf,
+      vjust = -0.5,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "none",
+          axis.line = element_line(color = "black", linewidth = 0.6),
+          axis.ticks = element_line(color = "black"),
+          panel.grid = element_blank(),
+          axis.title.x = element_text(size = 14, family = "sans"),
+          axis.title.y = element_text(size = 14, family = "sans"),
+          axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
+          axis.text.y  = element_text(size = 14, family = "sans", color = "black")
+    ) +
+    labs(x = paste0("Pine Forest (n = ", n_main_nature_type_pine, ")"), y = "SOC stock [kg/m²]") +
+    coord_cartesian(ylim = c(0, 170), clip = "off") +
+    theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
+    scale_fill_manual(values = batlow_batlow) +
+    scale_color_manual(values = batlow_batlow)
+  
+  
+  plot_SOC_ecop_spru <- ggplot(eco_points_spru, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
+    geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.5) +
+    stat_summary(
+      fun = mean,
+      geom = "crossbar",
+      width = 0.7,
+      linetype = "dashed",
+      linewidth = 0.2, 
+      alpha = 0.5,
+      color = "grey30"
+    ) +
+    stat_boxplot(
+      geom = "errorbar",
+      width = 0.4,
+      linewidth = 0.3,
+      color = "grey10",
+    )+
+    geom_jitter(aes(fill = factor(SOC_stock_variant)), color = "grey10", width = 0.06, size = 2.5, shape = 21) + 
+    geom_text(
+      data = eco_points_spru,
+      aes(x = SOC_stock_variant),
+      label = sapply(eco_points_spru$SOC_stock_ecop_mean_kg_m2, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf, 
+      vjust = -2.3,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    geom_text(
+      data = eco_points_spru,
+      aes(x = SOC_stock_variant),
+      label = sapply(eco_points_spru$SOC_stock_ecop_median_kg_m2, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf,
+      vjust = -0.5,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "none",
+          axis.line = element_line(color = "black", linewidth = 0.6),
+          axis.ticks = element_line(color = "black"),
+          panel.grid = element_blank(),
+          axis.title.x = element_text(size = 14, family = "sans"),
+          axis.title.y = element_text(size = 14, family = "sans"),
+          axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
+          axis.text.y  = element_text(size = 14, family = "sans", color = "black")
+    ) +
+    labs(x = paste0("Spruce Forest (n = ", n_main_nature_type_spru, ")"), y = "SOC stock [kg/m²]") +
+    coord_cartesian(ylim = c(0, 170), clip = "off") +
+    theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
+    scale_fill_manual(values = batlow_batlow) +
+    scale_color_manual(values = batlow_batlow)
+  
+  
+  plot_SOC_ecop_shru <- ggplot(eco_points_shru, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
+    geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.5) +
+    stat_summary(
+      fun = mean,
+      geom = "crossbar",
+      width = 0.7,
+      linetype = "dashed",
+      linewidth = 0.2, 
+      alpha = 0.5,
+      color = "grey30"
+    ) +
+    stat_boxplot(
+      geom = "errorbar",
+      width = 0.4,
+      linewidth = 0.3,
+      color = "grey10",
+    )+
+    geom_jitter(aes(fill = factor(SOC_stock_variant)), color = "grey10", width = 0.06, size = 2.5, shape = 21) + 
+    geom_text(
+      data = eco_points_shru,
+      aes(x = SOC_stock_variant),
+      label = sapply(eco_points_shru$SOC_stock_ecop_mean_kg_m2, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf, 
+      vjust = -2.3,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    geom_text(
+      data = eco_points_shru,
+      aes(x = SOC_stock_variant),
+      label = sapply(eco_points_shru$SOC_stock_ecop_median_kg_m2, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf,
+      vjust = -0.5,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "none",
+          axis.line = element_line(color = "black", linewidth = 0.6),
+          axis.ticks = element_line(color = "black"),
+          panel.grid = element_blank(),
+          axis.title.x = element_text(size = 14, family = "sans"),
+          axis.title.y = element_text(size = 14, family = "sans"),
+          axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
+          axis.text.y  = element_text(size = 14, family = "sans", color = "black")
+    ) +
+    labs(x = paste0("Shrubs (n = ", n_main_nature_type_shru, ")"), y = "SOC stock [kg/m²]") +
+    coord_cartesian(ylim = c(0, 170), clip = "off") +
+    theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
+    scale_fill_manual(values = batlow_batlow) +
+    scale_color_manual(values = batlow_batlow)
+  
+  
+  plot_SOC_ecop_grass <- ggplot(eco_points_grass, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
+    geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.5) +
+    stat_summary(
+      fun = mean,
+      geom = "crossbar",
+      width = 0.7,
+      linetype = "dashed",
+      linewidth = 0.2, 
+      alpha = 0.5,
+      color = "grey30"
+    ) +
+    stat_boxplot(
+      geom = "errorbar",
+      width = 0.4,
+      linewidth = 0.3,
+      color = "grey10",
+    )+
+    geom_jitter(aes(fill = factor(SOC_stock_variant)), color = "grey10", width = 0.06, size = 2.5, shape = 21) + 
+    geom_text(
+      data = eco_points_grass,
+      aes(x = SOC_stock_variant),
+      label = sapply(eco_points_grass$SOC_stock_ecop_mean_kg_m2, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf, 
+      vjust = -2.3,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    geom_text(
+      data = eco_points_grass,
+      aes(x = SOC_stock_variant),
+      label = sapply(eco_points_grass$SOC_stock_ecop_median_kg_m2, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf,
+      vjust = -0.5,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "none",
+          axis.line = element_line(color = "black", linewidth = 0.6),
+          axis.ticks = element_line(color = "black"),
+          panel.grid = element_blank(),
+          axis.title.x = element_text(size = 14, family = "sans"),
+          axis.title.y = element_text(size = 14, family = "sans"),
+          axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
+          axis.text.y  = element_text(size = 14, family = "sans", color = "black")
+    ) +
+    labs(x = paste0("Grassland (n = ", n_main_nature_type_grass, ")"), y = "SOC stock [kg/m²]") +
+    coord_cartesian(ylim = c(0, 170), clip = "off") +
+    theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
+    scale_fill_manual(values = batlow_batlow) +
+    scale_color_manual(values = batlow_batlow)
+  
+  
+  plot_SOC_ecop_wet <- ggplot(eco_points_wet, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
+    geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.5) +
+    stat_summary(
+      fun = mean,
+      geom = "crossbar",
+      width = 0.7,
+      linetype = "dashed",
+      linewidth = 0.2, 
+      alpha = 0.5,
+      color = "grey30"
+    ) +
+    stat_boxplot(
+      geom = "errorbar",
+      width = 0.4,
+      linewidth = 0.3,
+      color = "grey10",
+    )+
+    geom_jitter(aes(fill = factor(SOC_stock_variant)), color = "grey10", width = 0.06, size = 2.5, shape = 21) + 
+    geom_text(
+      data = eco_points_wet,
+      aes(x = SOC_stock_variant),
+      label = sapply(eco_points_wet$SOC_stock_ecop_mean_kg_m2, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf, 
+      vjust = -2.3,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    geom_text(
+      data = eco_points_wet,
+      aes(x = SOC_stock_variant),
+      label = sapply(eco_points_wet$SOC_stock_ecop_median_kg_m2, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf,
+      vjust = -0.5,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "none",
+          axis.line = element_line(color = "black", linewidth = 0.6),
+          axis.ticks = element_line(color = "black"),
+          panel.grid = element_blank(),
+          axis.title.x = element_text(size = 14, family = "sans"),
+          axis.title.y = element_text(size = 14, family = "sans"),
+          axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
+          axis.text.y  = element_text(size = 14, family = "sans", color = "black")
+    ) +
+    labs(x = paste0("Wetland (n = ", n_main_nature_type_wet, ")"), y = "SOC stock [kg/m²]") +
+    coord_cartesian(ylim = c(0, 170), clip = "off") +
+    theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
+    scale_fill_manual(values = batlow_batlow) +
+    scale_color_manual(values = batlow_batlow)
+  
+  
+  plot_SOC_ecop_urban <- ggplot(eco_points_urban, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
+    geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10", median.colour = "grey30",  width = 0.7, outlier.shape = NA, linewidth = 0.3, alpha = 0.5) +
+    stat_summary(
+      fun = mean,
+      geom = "crossbar",
+      width = 0.7,
+      linetype = "dashed",
+      linewidth = 0.2, 
+      alpha = 0.5,
+      color = "grey30"
+    ) +
+    stat_boxplot(
+      geom = "errorbar",
+      width = 0.4,
+      linewidth = 0.3,
+      color = "grey10",
+    )+
+    geom_jitter(aes(fill = factor(SOC_stock_variant)), color = "grey10", width = 0.06, size = 2.5, shape = 21) + 
+    geom_text(
+      data = eco_points_urban,
+      aes(x = SOC_stock_variant),
+      label = sapply(eco_points_urban$SOC_stock_ecop_mean_kg_m2, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf, 
+      vjust = -2.3,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    geom_text(
+      data = eco_points_urban,
+      aes(x = SOC_stock_variant),
+      label = sapply(eco_points_urban$SOC_stock_ecop_median_kg_m2, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf,
+      vjust = -0.5,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "none",
+          axis.line = element_line(color = "black", linewidth = 0.6),
+          axis.ticks = element_line(color = "black"),
+          panel.grid = element_blank(),
+          axis.title.x = element_text(size = 14, family = "sans"),
+          axis.title.y = element_text(size = 14, family = "sans"),
+          axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
+          axis.text.y  = element_text(size = 14, family = "sans", color = "black")
+    ) +
+    labs(x = paste0("Built Area (n = ", n_main_nature_type_urban, ")"), y = "SOC stock [kg/m²]") +
+    coord_cartesian(ylim = c(0, 170), clip = "off") +
+    theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
+    scale_fill_manual(values = batlow_batlow) +
+    scale_color_manual(values = batlow_batlow)
+  
+  
+  plot_SOC_ecop_all_1v2 <- (((plot_SOC_ecop_wet | plot_SOC_ecop_deci) + plot_layout(widths = c(1, 1))) / 
+                              (plot_SOC_ecop_spru | plot_SOC_ecop_pine)  + plot_layout(widths = c(1, 1)))
+  
+  
+  plot_SOC_ecop_all_2v2 <- (((plot_SOC_ecop_shru | plot_SOC_ecop_grass) + plot_layout(widths = c(1, 1))) /
+                              (plot_SOC_ecop_urban | plot_spacer()) + plot_layout(widths = c(1.5, 0.5)))
+  
+  ggsave(
+    "plot_SOC_ecop_all_1v2.png",
+    plot = plot_SOC_ecop_all_1v2,
+    width = 8, 
+    height = 9, 
+    dpi = 300
+  )
+  
+  ggsave(
+    "plot_SOC_ecop_all_2v2.png",
+    plot = plot_SOC_ecop_all_2v2,
+    width = 8, 
+    height = 9, 
+    dpi = 300
+  )
+  
+  
+  ##########################################################################################################################################
+  #### 6. STATISTICAL TESTING OF VARIANTS - rmANOVA assumptions -> FRIEDMAN + POST-HOC (Eisinga + Bonferroni) + EFFECT SIZE (Cohen) 
+  ##########################################################################################################################################
   
   
   
@@ -2224,23 +2216,23 @@ plot_SOC_all_samples_kg_m2 <- ggplot(sample_points, aes(x = nature_type_reevalua
   
   
   
+  ##########################################################################################################################################
+  #### 7. DATA EXPORT 
+  ##########################################################################################################################################
   
   
-####
-#### DATA EXPORT 
-
-## create a new file and Write updated soil_layers to new sheets, while keeping the origianl sheets
-wb <- wb_load("02_Data_Soil_Samples_Ecobudgets_CS_R-import.xlsx")
-wb <- wb %>%
-  wb_add_worksheet(sheet = "soil_layers_analysis") %>%
-  wb_add_data(sheet = "soil_layers_analysis", x = soil_layers);
-  wb_add_worksheet(sheet = "sample_points_analysis") %>%
-  wb_add_data(sheet = "sample_points_analysis", x = sample_points);
-  wb_add_worksheet(sheet = "eco_points_analysis") %>%
-  wb_add_data(sheet = "eco_points_analysis", x = eco_points)
-#wb <- wb %>%
-#  wb_add_worksheet(sheet = "eco_points_analysis") %>%
-#  wb_add_data(sheet = "eco_points_analysis", x = soil_layers)
-wb_save(wb, "02_Data_Soil_Samples_Ecobudgets_CS_R-export.xlsx", overwrite = TRUE)
+  ## create a new file and Write updated soil_layers to new sheets, while keeping the origianl sheets
+  wb <- wb_load("02_Data_Soil_Samples_Ecobudgets_CS_R-import.xlsx")
+  wb <- wb %>%
+    wb_add_worksheet(sheet = "soil_layers_analysis") %>%
+    wb_add_data(sheet = "soil_layers_analysis", x = soil_layers);
+    wb_add_worksheet(sheet = "sample_points_analysis") %>%
+    wb_add_data(sheet = "sample_points_analysis", x = sample_points);
+    wb_add_worksheet(sheet = "eco_points_analysis") %>%
+    wb_add_data(sheet = "eco_points_analysis", x = eco_points)
+  #wb <- wb %>%
+  #  wb_add_worksheet(sheet = "eco_points_analysis") %>%
+  #  wb_add_data(sheet = "eco_points_analysis", x = soil_layers)
+  wb_save(wb, "02_Data_Soil_Samples_Ecobudgets_CS_R-export.xlsx", overwrite = TRUE)
 
 
