@@ -11,7 +11,11 @@ install.packages("purrr")
 install.packages("patchwork")
 install.packages("stringr")
 install.packages("scico")
-
+install.packages("ggpubr")
+install.packages("nortest")
+install.packages("rstatix")
+install.packages("PMCMRplus")
+install.packages("ez")
 
 ## Load packages
 library(openxlsx2)
@@ -22,6 +26,11 @@ library(purrr)
 library(patchwork)
 library(stringr)
 library(scico)
+library(ggpubr)
+library(nortest)
+library(rstatix)
+library(PMCMRplus)
+library(ez)
 
 ## Set the work directory
 setwd("C:/Users/cleme/OneDrive/Dokumente/Uni Koblenz/Modul 16/UiB/Masters/02_R/masters-thesis_SOC-data-analysis")
@@ -1557,7 +1566,7 @@ plot_SOC_all_samples_kg_m2 <- ggplot(sample_points, aes(x = nature_type_reevalua
           axis.text.x  = element_text(size = 14, family = "sans", color = "black", angle = 45, hjust = 1),
           axis.text.y  = element_text(size = 14, family = "sans", color = "black")
     ) +
-    labs(x = paste0("Dominant nature type of 10x10 m square"), y = "SOC stock / Var 1 [kg/m²]") +  # 
+    labs(x = paste0("Dominant nature type group of 10x10 m square"), y = "SOC stock / Var 1 [kg/m²]") +  # 
     coord_cartesian(ylim = c(0, 210), clip = "off") +
     theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
     scale_fill_manual(values = batlow_bamako2) +
@@ -1576,126 +1585,7 @@ plot_SOC_all_samples_kg_m2 <- ggplot(sample_points, aes(x = nature_type_reevalua
   
   
   ####
-  #### PLOT RESULT 5: SOC stock per unit area [kg/m2] per Ecobudgets point in 4 different calculation Variants
-  
-  ## Prepare plot data
-  counts_all_var <- eco_points_long %>%
-    group_by(SOC_stock_variant) %>%
-    summarise(n = n())
-  
-  n_eco_points <- length(eco_points$plot_ID)
-  
-  mean_SOC_all_var_kg_m2 <- eco_points_long %>%
-    group_by(SOC_stock_variant) %>%
-    summarise(
-      mean_val = mean(SOC_stock_ecop_kg_m2, na.rm = TRUE)
-    )
-  
-  median_SOC_all_var_kg_m2 <- eco_points_long %>%
-    group_by(SOC_stock_variant) %>%
-    summarise(
-      median_val = median(SOC_stock_ecop_kg_m2, na.rm = TRUE)
-    )
-  
-  ## Plot data for result 5: SOC [kg/m2] per Ecobudgets point in 4 different calculation Variants
-  plot_SOC_all_var_kg_m2 <- ggplot(eco_points_long, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
-    geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10",  width = 0.6, outlier.shape = 5, outlier.size = 2.5, linewidth = 0.5) +
-    stat_summary(
-      fun = mean,
-      geom = "crossbar",
-      width = 0.6,
-      linetype = "dashed",
-      linewidth = 0.2, 
-      color = "grey10"
-    ) +
-    geom_segment(            # If needed according to result in CODE CHAPTER 6.
-      aes(x = 1, xend = 4, y = 105, yend = 105),
-      arrow = arrow(length = unit(0.25, "cm"), ends = "both", type = "closed"),
-      linewidth = 0.4
-    ) +
-    annotate(
-      "text",
-      x = 2.5,
-      y = 112,
-      label = "r = 0.70",    # Value needs to be added according to results in CODE CHAPTER 6.
-      size = 4
-    ) +
-    geom_segment(            # If needed according to result in CODE CHAPTER 6.
-      aes(x = 2, xend = 4, y = 78, yend = 78),
-      arrow = arrow(length = unit(0.25, "cm"), ends = "both", type = "closed"),
-      linewidth = 0.4
-    ) +
-    annotate(
-      "text",
-      x = 2.5,
-      y = 85,
-      label = "r = 0.80",    # Value needs to be added according to results in CODE CHAPTER 6.
-      size = 4
-    ) +
-    geom_segment(            # If needed according to result in CODE CHAPTER 6.
-      aes(x = 2, xend = 3, y = 58, yend = 58),
-      arrow = arrow(length = unit(0.25, "cm"), ends = "both", type = "closed"),
-      linewidth = 0.4,
-      linetype = "longdash"
-    ) +
-    annotate(
-      "text",
-      x = 2.5,
-      y = 65,
-      label = "r = 0.44",    # Value needs to be added according to results in CODE CHAPTER 6.
-      size = 4
-    ) +
-    geom_text(
-      data = mean_SOC_all_var_kg_m2,
-      aes(x = SOC_stock_variant),
-      label = sapply(mean_SOC_all_var_kg_m2$mean_val, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
-      parse = TRUE,
-      y = Inf, 
-      vjust = -2.3,
-      inherit.aes = FALSE,
-      color = "black",
-      size = 4.3
-    ) +
-    geom_text(
-      data = median_SOC_all_var_kg_m2,
-      aes(x = SOC_stock_variant),
-      label = sapply(median_SOC_all_var_kg_m2$median_val, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
-      parse = TRUE,
-      y = Inf,
-      vjust = -0.5,
-      inherit.aes = FALSE,
-      color = "black",
-      size = 4.3
-    ) +
-    theme_minimal(base_size = 14) +
-    theme(legend.position = "none",
-          axis.line = element_line(color = "black", linewidth = 0.6),
-          axis.ticks = element_line(color = "black"),
-          panel.grid = element_blank(),
-          axis.title.x = element_text(size = 14, family = "sans"),
-          axis.title.y = element_text(size = 14, family = "sans"),
-          axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
-          axis.text.y  = element_text(size = 14, family = "sans", color = "black")
-    ) +
-    labs(x = paste0("Ecobudgets points (n = ", n_eco_points, ")"), y = "SOC stock [kg/m²]") +
-    coord_cartesian(ylim = c(0, 170), clip = "off") +
-    theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
-    scale_fill_manual(values = batlow_batlow) +
-    scale_color_manual(values = batlow_batlow)
-  
-  ## PLOT SAVE
-  ggsave(
-    "plot_SOC_all_var_kg_m2.png",
-    plot_SOC_all_var_kg_m2,
-    width = 160/25.4,
-    height = 120/25.4,
-    units = "in",
-    dpi = 300
-  )
-  
-  
-  ####
-  #### PLOT RESULT 6: SOC [g/cm2] per Ecobudgets point per dominating nature type in 4 different calculation Variants
+  #### PLOT RESULT 5: SOC [g/cm2] per Ecobudgets point per dominating nature type in 4 different calculation Variants
   
   ## Prepare plot data
   eco_points_long_raw <- eco_points %>%
@@ -1767,7 +1657,7 @@ plot_SOC_all_samples_kg_m2 <- ggplot(sample_points, aes(x = nature_type_reevalua
   eco_points_wet <- eco_points_long %>%
     filter(main_nature_type == "Wetland")
   eco_points_urban <- eco_points_long %>%
-    filter(main_nature_type == "Urban")
+    filter(main_nature_type == "Built Area")
   
   n_main_nature_type_deci <- eco_points_deci$n_main_nature_type[1]
   n_main_nature_type_pine <- eco_points_pine$n_main_nature_type[1]
@@ -2204,18 +2094,214 @@ plot_SOC_all_samples_kg_m2 <- ggplot(sample_points, aes(x = nature_type_reevalua
   )
   
   
+  
+  ####
+  #### PLOT RESULT 6: SOC stock per unit area [kg/m2] per Ecobudgets point in 4 different calculation Variants
+  
+  ## Prepare plot data
+  counts_all_var <- eco_points_long %>%
+    group_by(SOC_stock_variant) %>%
+    summarise(n = n())
+  
+  n_eco_points <- length(eco_points$plot_ID)
+  
+  mean_SOC_all_var_kg_m2 <- eco_points_long %>%
+    group_by(SOC_stock_variant) %>%
+    summarise(
+      mean_val = mean(SOC_stock_ecop_kg_m2, na.rm = TRUE)
+    )
+  
+  median_SOC_all_var_kg_m2 <- eco_points_long %>%
+    group_by(SOC_stock_variant) %>%
+    summarise(
+      median_val = median(SOC_stock_ecop_kg_m2, na.rm = TRUE)
+    )
+  
+  ## Plot data for result 5: SOC [kg/m2] per Ecobudgets point in 4 different calculation Variants
+  plot_SOC_all_var_kg_m2 <- ggplot(eco_points_long, aes(x = SOC_stock_variant, y = SOC_stock_ecop_kg_m2)) +
+    geom_boxplot(aes(fill = factor(SOC_stock_variant)), color = "grey10",  width = 0.6, outlier.shape = 5, outlier.size = 2.5, linewidth = 0.5) +
+    stat_summary(
+      fun = mean,
+      geom = "crossbar",
+      width = 0.6,
+      linetype = "dashed",
+      linewidth = 0.2, 
+      color = "grey10"
+    ) +
+    geom_segment(            # If needed according to result in CODE CHAPTER 6.
+      aes(x = 1, xend = 4, y = 105, yend = 105),
+      arrow = arrow(length = unit(0.25, "cm"), ends = "both", type = "closed"),
+      linewidth = 0.4
+    ) +
+    annotate(
+      "text",
+      x = 2.5,
+      y = 112,
+      label = "r = 0.70",    # Value needs to be added according to results in CODE CHAPTER 6.
+      size = 4
+    ) +
+    geom_segment(            # If needed according to result in CODE CHAPTER 6.
+      aes(x = 2, xend = 4, y = 78, yend = 78),
+      arrow = arrow(length = unit(0.25, "cm"), ends = "both", type = "closed"),
+      linewidth = 0.4
+    ) +
+    annotate(
+      "text",
+      x = 2.5,
+      y = 85,
+      label = "r = 0.80",    # Value needs to be added according to results in CODE CHAPTER 6.
+      size = 4
+    ) +
+    geom_segment(            # If needed according to result in CODE CHAPTER 6.
+      aes(x = 2, xend = 3, y = 58, yend = 58),
+      arrow = arrow(length = unit(0.25, "cm"), ends = "both", type = "closed"),
+      linewidth = 0.4,
+      linetype = "longdash"
+    ) +
+    annotate(
+      "text",
+      x = 2.5,
+      y = 65,
+      label = "r = 0.44",    # Value needs to be added according to results in CODE CHAPTER 6.
+      size = 4
+    ) +
+    geom_text(
+      data = mean_SOC_all_var_kg_m2,
+      aes(x = SOC_stock_variant),
+      label = sapply(mean_SOC_all_var_kg_m2$mean_val, function(x) bquote(bar(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf, 
+      vjust = -2.3,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    geom_text(
+      data = median_SOC_all_var_kg_m2,
+      aes(x = SOC_stock_variant),
+      label = sapply(median_SOC_all_var_kg_m2$median_val, function(x) bquote(tilde(x) == .(sprintf("%.1f", x)))),
+      parse = TRUE,
+      y = Inf,
+      vjust = -0.5,
+      inherit.aes = FALSE,
+      color = "black",
+      size = 4.3
+    ) +
+    theme_minimal(base_size = 14) +
+    theme(legend.position = "none",
+          axis.line = element_line(color = "black", linewidth = 0.6),
+          axis.ticks = element_line(color = "black"),
+          panel.grid = element_blank(),
+          axis.title.x = element_text(size = 14, family = "sans"),
+          axis.title.y = element_text(size = 14, family = "sans"),
+          axis.text.x  = element_text(size = 14, family = "sans", color = "black"),
+          axis.text.y  = element_text(size = 14, family = "sans", color = "black")
+    ) +
+    labs(x = paste0("Ecobudgets points (n = ", n_eco_points, ")"), y = "SOC stock [kg/m²]") +
+    coord_cartesian(ylim = c(0, 170), clip = "off") +
+    theme(plot.margin = margin(t = 65, r = 5, b = 5, l = 5)) +
+    scale_fill_manual(values = batlow_batlow) +
+    scale_color_manual(values = batlow_batlow)
+  
+  ## PLOT SAVE
+  ggsave(
+    "plot_SOC_all_var_kg_m2.png",
+    plot_SOC_all_var_kg_m2,
+    width = 160/25.4,
+    height = 120/25.4,
+    units = "in",
+    dpi = 300
+  )
+  
+  
+  
   ##########################################################################################################################################
   #### 6. STATISTICAL TESTING OF VARIANTS - rmANOVA assumptions -> FRIEDMAN + POST-HOC (Eisinga + Bonferroni) + EFFECT SIZE (Cohen) 
   ##########################################################################################################################################
   
+  ####
+  #### DATA PREPARATION
+  
+  statdata_long <- eco_points_long %>%
+    select(plot_ID, SOC_stock_variant, SOC_stock_ecop_kg_m2) %>%  
+    mutate(
+      plot_ID = factor(plot_ID, levels = unique(plot_ID)),  
+      SOC_stock_variant = factor(SOC_stock_variant, levels = c("Var 1", "Var 2", "Var 3", "Var 4"))  
+    ) %>%
+    arrange(plot_ID, SOC_stock_variant) 
+  
+  ## NOT MANDATORY INFO
+  
+  statdata_long %>%
+    group_by(SOC_stock_variant) %>%
+    summarize(M = mean(SOC_stock_ecop_kg_m2),
+              SD = sd(SOC_stock_ecop_kg_m2)) %>%
+    as.data.frame()
+  
+  boxplot(statdata_long$SOC_stock_ecop_kg_m2~statdata_long$SOC_stock_variant)
   
   
+  ####
+  #### NORMALITY CHECK for rmANOVA
+  
+  ggqqplot(statdata_long, "SOC_stock_ecop_kg_m2", facet.by = "SOC_stock_variant")
+  
+  normality <- statdata_long %>%
+    group_by(SOC_stock_variant) %>%
+    summarise(
+      sw_p = shapiro.test(SOC_stock_ecop_kg_m2)$p.value,
+      ad_p = ad.test(SOC_stock_ecop_kg_m2)$p.value,
+      .groups = "drop"
+    )
   
   
+  ## Mauchlys test of sphericity
+  
+  ez_model <- ezANOVA(
+    data = statdata_long,
+    dv = SOC_stock_ecop_kg_m2,
+    wid = plot_ID,
+    within = SOC_stock_variant,
+    detailed = TRUE
+  )
+  
+  ez_model$Mauchly
   
   
+  ####
+  #### FRIEDMAN TEST (because normal distribution is not the case)
+  
+  friedman_result <- friedman.test(statdata_long$SOC_stock_ecop_kg_m2, statdata_long$SOC_stock_variant, statdata_long$plot_ID)
+  
+  ## Effect size
+  friedmann_effect_size <- friedman_effsize(statdata_long, SOC_stock_ecop_kg_m2 ~ SOC_stock_variant | plot_ID)
   
   
+  ####
+  #### POST HOC TEST - Exact-p-value-method with Bonferroni correction
+  
+  posthoc_exact_bonf_result <- frdAllPairsExactTest(statdata_long$SOC_stock_ecop_kg_m2, statdata_long$SOC_stock_variant, statdata_long$plot_ID, 
+                                                    p.adjust.method = "bonferroni")
+  
+  
+  ## POST HOC TEST for EFFECZ SIZE - Exact-p-value-method without correction
+  
+  posthoc_exact_none_result <- frdAllPairsExactTest(statdata_long$SOC_stock_ecop_kg_m2, statdata_long$SOC_stock_variant, statdata_long$plot_ID, 
+                                                    p.adjust.method = "none")
+  
+  z13 <- qnorm(posthoc_exact_none_result$p.value[2]/2)
+  z14 <- qnorm(posthoc_exact_none_result$p.value[3]/2)
+  z23 <- qnorm(posthoc_exact_none_result$p.value[5]/2)
+  z24 <- qnorm(posthoc_exact_none_result$p.value[6]/2)
+  
+  n <- rstatix::friedman_test(data = statdata_long, formula = SOC_stock_ecop_kg_m2 ~ SOC_stock_variant | plot_ID)$n
+  
+  r13 <- z13/sqrt(n)
+  r14 <- z14/sqrt(n)
+  r23 <- z23/sqrt(n)
+  r24 <- z24/sqrt(n)
+  
+
   ##########################################################################################################################################
   #### 7. DATA EXPORT 
   ##########################################################################################################################################
@@ -2225,14 +2311,15 @@ plot_SOC_all_samples_kg_m2 <- ggplot(sample_points, aes(x = nature_type_reevalua
   wb <- wb_load("02_Data_Soil_Samples_Ecobudgets_CS_R-import.xlsx")
   wb <- wb %>%
     wb_add_worksheet(sheet = "soil_layers_analysis") %>%
-    wb_add_data(sheet = "soil_layers_analysis", x = soil_layers);
+    wb_add_data(sheet = "soil_layers_analysis", x = soil_layers)
+  wb <- wb %>%
     wb_add_worksheet(sheet = "sample_points_analysis") %>%
-    wb_add_data(sheet = "sample_points_analysis", x = sample_points);
+    wb_add_data(sheet = "sample_points_analysis", x = sample_points)
+  wb <- wb %>%
     wb_add_worksheet(sheet = "eco_points_analysis") %>%
     wb_add_data(sheet = "eco_points_analysis", x = eco_points)
-  #wb <- wb %>%
-  #  wb_add_worksheet(sheet = "eco_points_analysis") %>%
-  #  wb_add_data(sheet = "eco_points_analysis", x = soil_layers)
-  wb_save(wb, "02_Data_Soil_Samples_Ecobudgets_CS_R-export.xlsx", overwrite = TRUE)
+
+  ## save the new file into the work directory with the given name
+  wb_save(wb, "Soil_Samples_Ecobudgets_analysis_R-export.xlsx", overwrite = TRUE)
 
 
