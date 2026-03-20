@@ -2319,7 +2319,7 @@ plot_SOC_all_samples_kg_m2 <- ggplot(sample_points, aes(x = nature_type_reevalua
     wb_add_worksheet(sheet = "eco_points_analysis") %>%
     wb_add_data(sheet = "eco_points_analysis", x = eco_points)
 
-  ## save the new file into the work directory with the given name
+  ## save the new file into the work directory with the given name.
   wb_save(wb, "Soil_Samples_Ecobudgets_analysis_R-export.xlsx", overwrite = TRUE)
 
 
